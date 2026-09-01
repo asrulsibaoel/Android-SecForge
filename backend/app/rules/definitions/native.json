@@ -1,0 +1,72 @@
+[
+  {
+    "id": "ASF-NATIVE-STR-001",
+    "title": "Potential unsafe C string API usage",
+    "category": "native",
+    "type": "native",
+    "symbols": ["strcpy", "strcat", "sprintf", "vsprintf", "gets", "stpcpy"],
+    "severity": "medium",
+    "confidence": "low",
+    "status": "POTENTIAL",
+    "description": "The native library imports C string functions that do not bound their writes. Their presence is an indicator, not proof of a vulnerability; exploitability depends on whether attacker-controlled, unbounded input reaches them.",
+    "remediation": "Prefer bounded equivalents (strlcpy/snprintf), validate lengths at trust boundaries, and review the call sites that handle external input.",
+    "references": [
+      "https://cwe.mitre.org/data/definitions/120.html",
+      "https://mas.owasp.org/MASTG/tests/android/MASVS-CODE/MASTG-TEST-0043/"
+    ]
+  },
+  {
+    "id": "ASF-NATIVE-SCAN-001",
+    "title": "Potential unsafe input parsing API usage",
+    "category": "native",
+    "type": "native",
+    "symbols": ["scanf", "sscanf", "vscanf", "vsscanf"],
+    "severity": "low",
+    "confidence": "low",
+    "status": "POTENTIAL",
+    "description": "The library imports scanf-family parsers, which can overflow fixed buffers with unbounded %s conversions. Indicator only.",
+    "remediation": "Use width-limited conversions and validate input sizes before parsing.",
+    "references": ["https://cwe.mitre.org/data/definitions/120.html"]
+  },
+  {
+    "id": "ASF-NATIVE-EXEC-001",
+    "title": "Potential command execution API usage",
+    "category": "native",
+    "type": "native",
+    "symbols": ["system", "popen", "execl", "execlp", "execle", "execv", "execvp", "execvpe"],
+    "severity": "high",
+    "confidence": "low",
+    "status": "POTENTIAL",
+    "description": "The library imports process/command execution APIs. If attacker-influenced data reaches the command string, this could enable command injection. Presence alone is an indicator.",
+    "remediation": "Avoid shell execution; if unavoidable, use argument arrays with fixed executables and never pass untrusted input to a shell.",
+    "references": [
+      "https://cwe.mitre.org/data/definitions/78.html"
+    ]
+  },
+  {
+    "id": "ASF-NATIVE-TMP-001",
+    "title": "Insecure temporary file API usage",
+    "category": "native",
+    "type": "native",
+    "symbols": ["mktemp", "tmpnam", "tempnam"],
+    "severity": "low",
+    "confidence": "low",
+    "status": "POTENTIAL",
+    "description": "The library imports temporary-file APIs with predictable names, which are subject to race conditions. Indicator only.",
+    "remediation": "Use mkstemp/mkdtemp which create files atomically with restrictive permissions.",
+    "references": ["https://cwe.mitre.org/data/definitions/377.html"]
+  },
+  {
+    "id": "ASF-NATIVE-CRYPTO-001",
+    "title": "Weak native cryptographic primitive indicator",
+    "category": "native",
+    "type": "native",
+    "symbols": ["MD5_Init", "MD5_Update", "MD5_Final", "SHA1_Init", "SHA1_Update", "DES_set_key", "DES_ecb_encrypt", "RC4", "RC4_set_key"],
+    "severity": "medium",
+    "confidence": "low",
+    "status": "POTENTIAL",
+    "description": "The library imports symbols for weak or broken cryptographic primitives (MD5, SHA-1, DES, RC4). Their use for security purposes would be inappropriate; presence is an indicator.",
+    "remediation": "Use modern primitives (SHA-256+, AES-GCM) for security-relevant operations.",
+    "references": ["https://mas.owasp.org/MASTG/tests/android/MASVS-CRYPTO/MASTG-TEST-0014/"]
+  }
+]

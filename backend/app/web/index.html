@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AndroidSecForge</title>
+  <style>
+    :root { color-scheme: dark; --ink: #edf4f3; --muted: #9db0ae; --bg: #101918; --panel: #172321; --line: #2a3b38; --accent: #e5a84b; --ok: #73d6a3; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; color: var(--ink); background: radial-gradient(circle at 80% 0%, #2d4034 0, transparent 32rem), var(--bg); font: 16px/1.5 Georgia, serif; }
+    main { width: min(100% - 2rem, 1100px); margin: auto; padding: 3rem 0 5rem; }
+    header { display: flex; justify-content: space-between; align-items: end; gap: 1rem; border-bottom: 1px solid var(--line); padding-bottom: 1.5rem; }
+    h1 { margin: 0; font-size: clamp(2rem, 6vw, 4.5rem); line-height: .95; letter-spacing: 0; }
+    .kicker { color: var(--accent); font: 700 12px/1.2 monospace; letter-spacing: .12em; text-transform: uppercase; }
+    a { color: var(--accent); }
+    .intro { max-width: 38rem; color: var(--muted); font-size: 1.1rem; }
+    nav { display: flex; gap: .5rem; margin: 1.5rem 0; border-bottom: 1px solid var(--line); padding-bottom: .8rem; }
+    nav button { background: transparent; color: var(--muted); border: 1px solid transparent; }
+    nav button.active, nav button:hover { color: var(--ink); border-color: var(--accent); }
+    .workspace { display: grid; grid-template-columns: 1.2fr .8fr; gap: 1rem; margin-top: 2rem; }
+    .view { display: none; } .view.active { display: block; }
+    .wide { grid-column: 1 / -1; }
+    .row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; border-bottom: 1px solid var(--line); padding: .8rem 0; }
+    .row:last-child { border-bottom: 0; }
+    .row button { padding: .45rem .7rem; }
+    .unavailable { color: #d99086; }
+    section { border: 1px solid var(--line); background: color-mix(in srgb, var(--panel) 92%, transparent); padding: 1.5rem; }
+    h2 { margin: 0 0 1rem; font-size: 1.2rem; }
+    .drop { display: grid; place-items: center; min-height: 15rem; border: 1px dashed #52706a; text-align: center; cursor: pointer; padding: 2rem; }
+    .drop:hover, .drop:focus-within { border-color: var(--accent); background: #1c2c29; }
+    input[type=file] { max-width: 100%; }
+    button { border: 0; background: var(--accent); color: #1a1710; padding: .8rem 1.2rem; font: 700 14px monospace; cursor: pointer; }
+    button:disabled { cursor: wait; opacity: .5; }
+    .hint, #message { color: var(--muted); font-size: .9rem; }
+    #result { display: none; margin-top: 1rem; }
+    dl { display: grid; grid-template-columns: 7rem 1fr; gap: .6rem 1rem; margin: 0; font: 13px monospace; overflow-wrap: anywhere; }
+    dt { color: var(--muted); } dd { margin: 0; }
+    .status { color: var(--ok); font-weight: bold; }
+    @media (max-width: 720px) { header { display: block; } .workspace { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div><div class="kicker">Android security research</div><h1>AndroidSecForge</h1></div>
+      <a href="/docs">API docs</a>
+    </header>
+    <p class="intro">Upload an Android package to inspect its archive structure, manifest, and evidence-backed security findings.</p>
+    <nav aria-label="Dashboard sections">
+      <button class="active" data-view="analyze-view">Analyze</button>
+      <button data-view="artifacts-view">Artifacts</button>
+      <button data-view="capabilities-view">Capabilities</button>
+      <button data-view="ipc-view">IPC</button>
+    </nav>
+    <div class="workspace">
+      <section id="analyze-view" class="view active">
+        <h2>Analyze an APK</h2>
+        <form id="upload-form">
+          <label class="drop" for="apk-file"><span><strong>Choose an APK, AAB, APKS, or APKM</strong><br><span class="hint">The original file is preserved. No external scanner is required.</span></span><input id="apk-file" name="file" type="file" accept=".apk,.aab,.apks,.apkm,application/vnd.android.package-archive,application/octet-stream" required></label>
+          <p><button id="submit" type="submit">Start analysis</button></p>
+        </form>
+        <p id="message" role="status"></p>
+      </section>
+      <section id="result">
+        <h2>Artifact result</h2>
+        <dl id="details"></dl>
+      </section>
+      <section id="artifacts-view" class="view wide">
+        <h2>Stored artifacts</h2>
+        <div id="artifact-list"><p class="hint">Loading artifacts...</p></div>
+      </section>
+      <section id="capabilities-view" class="view wide">
+        <h2>Analysis capabilities</h2>
+        <div class="row"><span>Artifact fingerprinting</span><span class="status">AVAILABLE</span></div>
+        <div class="row"><span>ZIP metadata</span><span class="status">AVAILABLE</span></div>
+        <div class="row"><span>Vulnerability analysis</span><span class="unavailable">UNAVAILABLE</span></div>
+        <div class="row"><span>XML manifest and component analysis</span><span class="status">AVAILABLE</span></div>
+        <div class="row"><span>Binary manifest, DEX, native, CVE, and runtime analysis</span><span class="unavailable">UNAVAILABLE</span></div>
+        <p class="hint">Unavailable capabilities are not simulated. They will appear here when implemented.</p>
+      </section>
+      <section id="ipc-view" class="view wide">
+        <h2>IPC entry points</h2>
+        <p class="hint">Manifest-derived potential entry points. Code reachability and runtime validation are not inferred.</p>
+        <div id="ipc-list"><p class="hint">Select an analyzed artifact to inspect IPC entry points.</p></div>
+      </section>
+    </div>
+  </main>
+  <script>
+    const form = document.querySelector('#upload-form');
+    const button = document.querySelector('#submit');
+    const message = document.querySelector('#message');
+    const result = document.querySelector('#result');
+    const details = document.querySelector('#details');
+    const artifactList = document.querySelector('#artifact-list');
+    const ipcList = document.querySelector('#ipc-list');
+    document.querySelectorAll('nav button').forEach((button) => button.addEventListener('click', async () => {
+      document.querySelectorAll('nav button').forEach((item) => item.classList.remove('active'));
+      document.querySelectorAll('.view').forEach((view) => view.classList.remove('active'));
+      button.classList.add('active'); document.querySelector(`#${button.dataset.view}`).classList.add('active');
+      if (button.dataset.view === 'artifacts-view') await loadArtifacts();
+    }));
+    async function loadArtifacts() {
+      const response = await fetch('/api/v1/apk'); const artifacts = await response.json();
+      artifactList.innerHTML = artifacts.length ? artifacts.map((item) => `<div class="row"><span>${item.original_filename}<br><small class="hint">${item.artifact_type} · ${item.sha256}</small></span><button data-id="${item.id}">View</button></div>`).join('') : '<p class="hint">No artifacts imported yet.</p>';
+      artifactList.querySelectorAll('button').forEach((item) => item.addEventListener('click', () => showArtifact(item.dataset.id)));
+    }
+    async function showArtifact(id) {
+      const response = await fetch(`/api/v1/apk/${id}`); const data = await response.json();
+      details.innerHTML = Object.entries(data).map(([key, value]) => `<dt>${key}</dt><dd>${value}</dd>`).join('');
+      const ipc = await (await fetch(`/api/v1/apk/${id}/ipc`)).json();
+      ipcList.innerHTML = ipc.entries.length ? ipc.entries.map((entry) => `<div class="row"><span>${entry.type}: ${entry.component}<br><small class="hint">${entry.input} · ${entry.state}</small></span></div>`).join('') : '<p class="hint">No exported IPC entry points found.</p>';
+      result.style.display = 'block'; document.querySelector('[data-view="analyze-view"]').click();
+    }
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault(); button.disabled = true; message.textContent = 'Inspecting artifact...'; result.style.display = 'none';
+      try {
+        const response = await fetch('/api/v1/apk/import', { method: 'POST', body: new FormData(form) });
+        const body = await response.text(); let data; try { data = JSON.parse(body); } catch { throw new Error(`Server error (${response.status}). Check the server log.`); } if (!response.ok) throw new Error(data.detail || 'Analysis failed');
+        details.innerHTML = Object.entries(data).map(([key, value]) => `<dt>${key}</dt><dd class="${key === 'status' ? 'status' : ''}">${value}</dd>`).join('');
+        result.style.display = 'block'; message.textContent = 'Artifact stored successfully.';
+      } catch (error) { message.textContent = error.message; } finally { button.disabled = false; }
+    });
+  </script>
+</body>
+</html>

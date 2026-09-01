@@ -1,0 +1,104 @@
+[
+  {
+    "id": "ANDROID-WEBVIEW-001",
+    "title": "WebView JavaScript enabled",
+    "category": "webview",
+    "type": "code",
+    "patterns": ["setJavaScriptEnabled\\s*\\(\\s*true\\s*\\)"],
+    "require_all": false,
+    "severity": "medium",
+    "confidence": "medium",
+    "status": "POTENTIAL",
+    "description": "JavaScript is explicitly enabled on a WebView. When combined with loading untrusted content this can lead to script injection.",
+    "remediation": "Only enable JavaScript when required, restrict navigation to trusted origins, and avoid loading untrusted URLs.",
+    "references": [
+      "https://developer.android.com/develop/ui/views/layout/webapps/webview#EnablingJavaScript",
+      "https://mas.owasp.org/MASTG/tests/android/MASVS-PLATFORM/MASTG-TEST-0031/"
+    ]
+  },
+  {
+    "id": "ANDROID-WEBVIEW-002",
+    "title": "WebView JavaScript interface exposed",
+    "category": "webview",
+    "type": "code",
+    "patterns": ["addJavascriptInterface\\s*\\("],
+    "require_all": false,
+    "severity": "high",
+    "confidence": "medium",
+    "status": "POTENTIAL",
+    "description": "A native object is bridged into WebView JavaScript via addJavascriptInterface. If untrusted content is loaded, exposed methods may be invoked by attacker-controlled script.",
+    "remediation": "Avoid addJavascriptInterface for untrusted content, annotate only intended methods with @JavascriptInterface, and target API levels where the bridge is restricted.",
+    "references": [
+      "https://developer.android.com/reference/android/webkit/WebView#addJavascriptInterface(java.lang.Object,%20java.lang.String)"
+    ]
+  },
+  {
+    "id": "ANDROID-TLS-001",
+    "title": "Permissive TrustManager indicator",
+    "category": "network",
+    "type": "code",
+    "patterns": ["implements\\s+X509TrustManager", "checkServerTrusted"],
+    "require_all": true,
+    "severity": "high",
+    "confidence": "low",
+    "status": "POTENTIAL",
+    "description": "A custom X509TrustManager is implemented. Custom trust managers frequently disable certificate validation; the empty or accept-all case must be verified in the checkServerTrusted body.",
+    "remediation": "Do not implement custom certificate validation. If required, validate the chain properly and pin certificates rather than accepting all.",
+    "references": [
+      "https://mas.owasp.org/MASTG/tests/android/MASVS-NETWORK/MASTG-TEST-0020/"
+    ]
+  },
+  {
+    "id": "ANDROID-TLS-002",
+    "title": "Permissive hostname verifier indicator",
+    "category": "network",
+    "type": "code",
+    "patterns": ["ALLOW_ALL_HOSTNAME_VERIFIER|NullHostnameVerifier|setHostnameVerifier"],
+    "require_all": false,
+    "severity": "high",
+    "confidence": "low",
+    "status": "POTENTIAL",
+    "description": "A hostname verifier is customized or set to an allow-all implementation, which can defeat TLS hostname checks.",
+    "remediation": "Use the default hostname verifier and rely on the platform's certificate validation and a network security configuration.",
+    "references": [
+      "https://mas.owasp.org/MASTG/tests/android/MASVS-NETWORK/MASTG-TEST-0021/"
+    ]
+  },
+  {
+    "id": "ANDROID-CRYPTO-001",
+    "title": "Weak cryptographic algorithm indicator",
+    "category": "crypto",
+    "type": "code",
+    "patterns": ["getInstance\\s*\\(\\s*\"(MD5|SHA-1|DES|DESede|RC4|AES/ECB[^\"]*)\""],
+    "require_all": false,
+    "severity": "medium",
+    "confidence": "medium",
+    "status": "POTENTIAL",
+    "description": "A weak or broken cryptographic primitive (MD5, SHA-1, DES/3DES, RC4, or AES in ECB mode) is requested. These do not provide adequate confidentiality or integrity.",
+    "remediation": "Use SHA-256 or stronger for hashing and AES-GCM (or another authenticated mode) with a random IV for encryption.",
+    "references": [
+      "https://mas.owasp.org/MASTG/tests/android/MASVS-CRYPTO/MASTG-TEST-0014/"
+    ]
+  },
+  {
+    "id": "ANDROID-SECRET-001",
+    "title": "Hardcoded secret indicator",
+    "category": "secrets",
+    "type": "code",
+    "patterns": [
+      "(?i)(password|passwd|api[_-]?key|secret|token)\\s*=\\s*\"[^\"]{6,}\"",
+      "AKIA[0-9A-Z]{16}",
+      "(?i)authorization\\s*[:=]\\s*\"?bearer\\s+[A-Za-z0-9._-]{10,}"
+    ],
+    "require_all": false,
+    "mask": true,
+    "severity": "medium",
+    "confidence": "low",
+    "status": "POTENTIAL",
+    "description": "A string that resembles a credential, API key, or token is embedded in the decompiled source. Hardcoded secrets can be recovered by anyone with the APK.",
+    "remediation": "Remove secrets from the client, rotate any exposed values, and fetch credentials from a secured backend at runtime.",
+    "references": [
+      "https://mas.owasp.org/MASTG/tests/android/MASVS-STORAGE/MASTG-TEST-0011/"
+    ]
+  }
+]

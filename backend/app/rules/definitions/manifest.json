@@ -1,0 +1,79 @@
+[
+  {
+    "id": "ANDROID-MANIFEST-001",
+    "title": "Debuggable application",
+    "category": "manifest",
+    "type": "manifest",
+    "condition": "debuggable_enabled",
+    "severity": "medium",
+    "confidence": "high",
+    "status": "CONFIRMED_BY_STATIC_ANALYSIS",
+    "description": "The application is marked android:debuggable=true, which allows attaching a debugger and inspecting or manipulating the running process on any device.",
+    "remediation": "Set android:debuggable=false (the default) in release builds and rely on build-type overrides for development.",
+    "references": [
+      "https://developer.android.com/guide/topics/manifest/application-element#debug",
+      "https://mas.owasp.org/MASTG/tests/android/MASVS-RESILIENCE/MASTG-TEST-0089/"
+    ]
+  },
+  {
+    "id": "ANDROID-MANIFEST-002",
+    "title": "Application backup enabled",
+    "category": "manifest",
+    "type": "manifest",
+    "condition": "allow_backup_enabled",
+    "severity": "low",
+    "confidence": "high",
+    "status": "CONFIRMED_BY_STATIC_ANALYSIS",
+    "description": "android:allowBackup=true permits application data to be extracted through adb backup, which may expose sensitive local data.",
+    "remediation": "Set android:allowBackup=false or define a fullBackupContent/dataExtractionRules policy that excludes sensitive data.",
+    "references": [
+      "https://developer.android.com/guide/topics/manifest/application-element#allowbackup"
+    ]
+  },
+  {
+    "id": "ANDROID-MANIFEST-003",
+    "title": "Cleartext traffic enabled",
+    "category": "network",
+    "type": "manifest",
+    "condition": "cleartext_enabled",
+    "severity": "medium",
+    "confidence": "high",
+    "status": "CONFIRMED_BY_STATIC_ANALYSIS",
+    "description": "android:usesCleartextTraffic=true allows the app to send unencrypted HTTP traffic, exposing it to interception and tampering.",
+    "remediation": "Disable cleartext traffic and use a network security configuration that enforces TLS for all domains.",
+    "references": [
+      "https://developer.android.com/privacy-and-security/security-config"
+    ]
+  },
+  {
+    "id": "ANDROID-COMPONENT-001",
+    "title": "Exported component without permission",
+    "category": "ipc",
+    "type": "manifest",
+    "condition": "exported_component_without_permission",
+    "severity": "medium",
+    "confidence": "medium",
+    "status": "CONFIRMED_BY_STATIC_ANALYSIS",
+    "description": "A component is reachable by other applications (explicitly exported or exported via an intent-filter) and is not guarded by an android:permission, so any app can interact with it.",
+    "remediation": "Set android:exported=false if external access is unnecessary, or protect the component with a signature-level permission and validate all incoming input.",
+    "references": [
+      "https://developer.android.com/guide/topics/manifest/activity-element#exported",
+      "https://mas.owasp.org/MASTG/tests/android/MASVS-PLATFORM/MASTG-TEST-0024/"
+    ]
+  },
+  {
+    "id": "ANDROID-COMPONENT-002",
+    "title": "Exported ContentProvider",
+    "category": "ipc",
+    "type": "manifest",
+    "condition": "exported_provider",
+    "severity": "high",
+    "confidence": "medium",
+    "status": "CONFIRMED_BY_STATIC_ANALYSIS",
+    "description": "A ContentProvider is exported without a permission guard, potentially exposing backing databases or files to other applications.",
+    "remediation": "Set android:exported=false, or require read/write permissions and enforce URI-permission grants with strict path validation.",
+    "references": [
+      "https://developer.android.com/guide/topics/providers/content-provider-basics#Permissions"
+    ]
+  }
+]
