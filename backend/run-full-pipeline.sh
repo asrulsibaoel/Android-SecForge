@@ -1,32 +1,44 @@
 #!/usr/bin/env bash
-# Launch the AndroidSecForge backend with the FULL analysis pipeline enabled:
-#   - jadx  (DEX -> Java decompilation; feeds code_index / graph / reachability / semantics)
-#   - Ghidra standalone stage (per-binary decompilation)
-#   - Ghidra DEEP native (call-chain reachability over native libs)
+# Launch the AndroidSecForge backend with the FULL analysis pipeline enabled
+# (jadx + Ghidra deep). All machine-specific values come from a .env file — this
+# script hardcodes NO paths. Copy .env.example to .env and set your tool paths.
 #
-# These are set here (the server's launch env) and DELIBERATELY NOT in backend/.env,
-# because pytest reads .env from this directory — enabling Ghidra deep there would make
-# the test suite invoke the real (slow) headless analyzer and break the hermetic
-# `real .so -> ELF_ONLY` test. Tests stay fast/host-independent; the live server runs full.
+#   cp .env.example .env      # then edit ASF_JADX_PATH / ASF_GHIDRA_PATH
+#   backend/run-full-pipeline.sh
 #
-# Trade-off: analyses are no longer instant. jadx adds ~10s; Ghidra deep adds roughly
-# ~1 min per native library (Magisk's 24 libs ≈ 27 min). Run ONE native-heavy analysis
-# at a time — a long Ghidra-deep run holds the SQLite write lock, so a concurrent
-# analysis can hit "database is locked".
+# Config precedence: real environment > .env file > the defaults below.
+# Override the env file location with:  ASF_ENV_FILE=/path/to/.env  or  arg $1.
 set -euo pipefail
-cd "$(dirname "$0")"
 
-export ASF_DATABASE_URL="sqlite:////tmp/claude-1000/-run-media-asrulsibaoel-Storage-personal-android-tester/2052eecc-91a8-4960-822b-b33f1aebaba8/scratchpad/accept25.db"
-export ASF_JADX_PATH="/home/asrulsibaoel/tools/jadx/bin/jadx"
-export ASF_GHIDRA_PATH="/home/asrulsibaoel/tools/ghidra_12.1.3_PUBLIC"
-# ghidra_deep = the call-chain native intelligence ("Ghidra deep"): functions, call
-# edges, JNI resolution, reachability. This is the one that matters — keep it ON.
-export ASF_GHIDRA_DEEP_ENABLED="true"
-# The legacy standalone `ghidra` stage (prompt8 per-library function extraction) is
-# left OFF: it is redundant with ghidra_deep (which is strictly richer) AND its
-# post-script is a `.py` GhidraScript that Ghidra 12 cannot run (Jython removed), so
-# it would only ever complete with 0 functions. Set to "true" only if you also port
-# app/analysis/ghidra_scripts/ExportFunctions.py to a .java GhidraScript.
-export ASF_GHIDRA_ENABLED="false"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-exec /usr/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --log-level info
+# --- load .env (KEY=value lines; shell-compatible) --------------------------
+ENV_FILE="${ASF_ENV_FILE:-${1:-$REPO_ROOT/.env}}"
+if [ -f "$ENV_FILE" ]; then
+  echo "[run-full-pipeline] loading config from $ENV_FILE"
+  set -a; . "$ENV_FILE"; set +a
+else
+  echo "[run-full-pipeline] no env file at $ENV_FILE — copy .env.example to .env and set your tool paths"
+fi
+
+# --- full-pipeline defaults (only applied if .env / env didn't set them) ----
+# Tool PATHS intentionally have NO default: they must come from your .env or
+# environment, never be baked into this committed script.
+export ASF_GHIDRA_DEEP_ENABLED="${ASF_GHIDRA_DEEP_ENABLED:-true}"   # deep native call-chain
+export ASF_GHIDRA_ENABLED="${ASF_GHIDRA_ENABLED:-false}"           # legacy per-lib stage (off)
+: "${ASF_DATABASE_URL:=sqlite:///$REPO_ROOT/androidsecforge.db}"; export ASF_DATABASE_URL
+
+# --- honest warnings if the optional analyzers aren't configured ------------
+[ -n "${ASF_JADX_PATH:-}" ] || \
+  echo "[run-full-pipeline] warn: ASF_JADX_PATH unset -> jadx (Java decompilation) will be UNAVAILABLE"
+[ -n "${ASF_GHIDRA_PATH:-}${GHIDRA_INSTALL_DIR:-}" ] || \
+  echo "[run-full-pipeline] warn: ASF_GHIDRA_PATH / GHIDRA_INSTALL_DIR unset -> Ghidra will be UNAVAILABLE"
+
+HOST="${ASF_HOST:-127.0.0.1}"
+PORT="${ASF_PORT:-8000}"
+PYTHON="${ASF_PYTHON:-python3}"
+
+cd "$SCRIPT_DIR"
+echo "[run-full-pipeline] serving on http://$HOST:$PORT  (db=$ASF_DATABASE_URL)"
+exec "$PYTHON" -m uvicorn app.main:app --host "$HOST" --port "$PORT" --log-level info

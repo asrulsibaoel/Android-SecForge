@@ -137,18 +137,27 @@ real per-stage progress. Production build: `npm run build` (outputs `frontend/di
 ## 6. Enable the deep analyzers (jadx + Ghidra deep)
 
 The static pipeline runs without these; enabling them gives the **complete**
-analysis. They are turned on with environment variables — set them for the server
-process:
+analysis. Configure them in a `.env` file (copy the template, then edit — **no
+paths are hardcoded anywhere**):
 
 ```bash
-export ASF_JADX_PATH=/path/to/jadx/bin/jadx        # DEX -> Java decompilation
-export ASF_GHIDRA_PATH=/path/to/ghidra_12.x_PUBLIC  # Ghidra install dir
-export ASF_GHIDRA_DEEP_ENABLED=true                 # deep native call-chain
-androidsecforge serve
+cp .env.example .env
+# edit .env:
+#   ASF_JADX_PATH=/path/to/jadx/bin/jadx        # DEX -> Java decompilation
+#   ASF_GHIDRA_PATH=/path/to/ghidra_11.x_PUBLIC # Ghidra install dir
+#   ASF_GHIDRA_DEEP_ENABLED=true                # deep native call-chain
+```
+
+Then start the full-pipeline server (it loads `.env`, so nothing to export):
+
+```bash
+./backend/run-full-pipeline.sh
 ```
 
 Verify with `androidsecforge doctor` (expect `jadx READY`, `ghidra READY`), or the
-Runtime/Native tabs in the UI.
+Runtime/Native tabs in the UI. (`.env` is gitignored — see `.env.example` for every
+option. A bare `androidsecforge serve` also reads a repo-root `.env`, but does not
+apply the full-pipeline defaults that `run-full-pipeline.sh` sets.)
 
 **Trade-offs (this is expected, not a hang):**
 
@@ -163,13 +172,13 @@ Runtime/Native tabs in the UI.
 **off** by default: it is redundant with Ghidra deep, and its post-script is a Jython
 `.py` GhidraScript that Ghidra 12 cannot run. "Ghidra deep" is `ASF_GHIDRA_DEEP_ENABLED`.
 
-> **Developer note — keep the test suite hermetic.** Do **not** put
-> `ASF_GHIDRA_DEEP_ENABLED` (or `ASF_JADX_PATH`) in `backend/.env`. pytest reads
-> `.env` from that directory; enabling Ghidra deep there makes the suite invoke the
-> real (slow) headless analyzer and break the `real .so → ELF_ONLY` test. Set these
-> flags in the **server launch environment** instead (a small `run-full-pipeline.sh`
-> that exports them before `uvicorn`/`serve` is a convenient pattern). Keep `.env`
-> to `ASF_GHIDRA_PATH` (detection only).
+> **Developer note — the test suite stays hermetic regardless of `.env`.** An
+> autouse fixture (`no_ghidra` in `backend/tests/conftest.py`) forces Ghidra to
+> appear absent during tests — and because both the standalone and the deep paths
+> resolve Ghidra through the same detector, the deep path falls back to `ELF_ONLY`
+> too. jadx isn't invoked on the synthetic in-process test APKs. So `make test`
+> passes fast (~40 s) even with `ASF_GHIDRA_DEEP_ENABLED=true` and `ASF_JADX_PATH`
+> set — verified. Put your config in `.env` with confidence.
 
 ---
 
@@ -193,7 +202,9 @@ fundamental failure.
 ## 8. Configuration reference
 
 All settings use the `ASF_` prefix (see `backend/app/core/config.py`) and can be set
-as environment variables or in `backend/.env` (mind the hermetic-test note in §6).
+as environment variables or in a `.env` file (copy `.env.example`; `.env` is
+gitignored). pydantic reads `.env` from the working directory; `run-full-pipeline.sh`
+loads the repo-root `.env` explicitly.
 
 | Variable | Purpose | Default |
 | --- | --- | --- |
