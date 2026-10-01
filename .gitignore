@@ -15,6 +15,7 @@ downloads/
 eggs/
 .eggs/
 lib/
+!frontend/src/lib/
 lib64/
 parts/
 sdist/
@@ -220,7 +221,9 @@ __marimo__/
 .streamlit/secrets.toml
 
 
-workspace/
-prompts/
-artifacts/
-analysis/
+/workspace/
+/prompts/
+/artifacts/
+/analysis/
+backend/workspace/
+backend/artifacts/
