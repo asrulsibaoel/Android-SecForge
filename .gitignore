@@ -227,3 +227,9 @@ __marimo__/
 /analysis/
 backend/workspace/
 backend/artifacts/
+
+# Local SQLite databases
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
